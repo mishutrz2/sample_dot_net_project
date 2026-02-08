@@ -1,4 +1,6 @@
 using Api.Data;
+using Api.Services;
+using Api.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -11,6 +13,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultPostgresConnectionString")));
 
+builder.Services.AddScoped<ILeagueService, LeagueService>();
 
 var app = builder.Build();
 
@@ -27,6 +30,14 @@ var summaries = new[]
 {
     "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
 };
+
+app.MapGet("/leagues", async (ILeagueService leagueService, CancellationToken cancellationToken) =>
+{
+    var leagues = await leagueService.GetLeaguesAsync(cancellationToken);
+    return Results.Ok(leagues);
+})
+.WithName("GetLeagues")
+.WithOpenApi();
 
 app.MapGet("/weatherforecast", () =>
 {
