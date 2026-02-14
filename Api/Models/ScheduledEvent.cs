@@ -8,7 +8,7 @@ public class ScheduledEvent : AuditableEntity
     public DateTime? EndTime { get; set; }
     public string Status { get; set; } = "Scheduled";
     public bool IsProjected { get; set; }
-    public byte[] Version { get; set; } = default!;
+    public long Version { get; set; }
     public Guid LeagueId { get; set; }
     public League League { get; set; } = default!;
 }

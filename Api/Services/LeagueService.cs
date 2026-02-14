@@ -7,27 +7,34 @@ namespace Api.Services;
 
 public class LeagueService(ApplicationDbContext _context) : ILeagueService
 {
-    public async Task<IEnumerable<League>> GetLeaguesAsync(CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<League>> GetAsync(CancellationToken cancellationToken = default)
     {
-        return await _context.Leagues.Include(l => l.Activity).AsNoTracking().ToListAsync(cancellationToken);
+        return await _context.Leagues
+            .Include(l => l.Activity)
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
     }
 
-    public Task<League> GetLeagueByIdAsync(int id)
+    public async Task<League?> GetIdAsync(Guid id, CancellationToken cancellationToken)
+    {
+        return await _context.Leagues
+            .AsNoTracking()
+            .FirstOrDefaultAsync(l => l.Id == id, cancellationToken);
+    }
+
+    public async Task<League> CreateAsync(League league, CancellationToken cancellationToken)
+    {
+        _context.Leagues.Add(league);
+        await _context.SaveChangesAsync(cancellationToken);
+        return league;
+    }
+
+    public async Task UpdateAsync(Guid id, League league, CancellationToken cancellationToken)
     {
         throw new NotImplementedException();
     }
 
-    public Task<League> CreateLeagueAsync(League league)
-    {
-        throw new NotImplementedException();
-    }
-
-    public Task UpdateLeagueAsync(int id, League league)
-    {
-        throw new NotImplementedException();
-    }
-
-    public Task DeleteLeagueAsync(int id)
+    public async Task DeleteAsync(Guid id, CancellationToken cancellationToken)
     {
         throw new NotImplementedException();
     }
