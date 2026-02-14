@@ -4,10 +4,10 @@ namespace Api.Services.Interfaces
 {
     public interface ILeagueService
     {
-        Task<IEnumerable<League>> GetLeaguesAsync(CancellationToken cancellationToken = default);
-        Task<League> GetLeagueByIdAsync(int id);
-        Task<League> CreateLeagueAsync(League league);
-        Task UpdateLeagueAsync(int id, League league);
-        Task DeleteLeagueAsync(int id);
+        Task<IEnumerable<League>> GetAsync(CancellationToken cancellationToken);
+        Task<League?> GetIdAsync(Guid id, CancellationToken cancellationToken);
+        Task<League> CreateAsync(League league, CancellationToken cancellationToken);
+        Task UpdateAsync(Guid id, League league, CancellationToken cancellationToken);
+        Task DeleteAsync(Guid id, CancellationToken cancellationToken);
     }
 }
