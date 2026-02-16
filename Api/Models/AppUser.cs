@@ -9,7 +9,7 @@ public class AppUser : AuditableEntity
     [EmailAddress]
     public string Email { get; set; } = default!;
     public string DisplayName { get; set; } = default!;
-    public bool IsActive { get; set; } = true;
+    public bool IsActive { get; set; }
     public DateTime? DateOfBirth { get; set; }
-    public ICollection<AppUserLeague> AppUserLeagues { get; set; } = new List<AppUserLeague>();
+    public ICollection<Membership> Memberships { get; set; } = new List<Membership>();
 } 

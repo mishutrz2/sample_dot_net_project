@@ -6,9 +6,26 @@ public class ScheduledEvent : AuditableEntity
 {
     public DateTime StartTime { get; set; }
     public DateTime? EndTime { get; set; }
-    public string Status { get; set; } = "Scheduled";
+    public EventStatus Status { get; set; }
+    public EventType Type { get; set; }
     public bool IsProjected { get; set; }
     public long Version { get; set; }
-    public Guid LeagueId { get; set; }
-    public League League { get; set; } = default!;
+    public Guid TenantId { get; set; }
+    public Tenant Tenant { get; set; } = default!;
+}
+
+public enum EventStatus
+{
+    Scheduled,
+    Ongoing,
+    Completed,
+    Cancelled
+}
+
+public enum EventType
+{
+    Match,
+    Practice,
+    Challenge,
+    Other
 }

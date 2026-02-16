@@ -1,6 +1,6 @@
 namespace Api.Models;
 
-public abstract class AuditableEntity
+public abstract class AuditableEntity : Entity
 {
     public Guid Id { get; set; } = Guid.CreateVersion7();
     public DateTime CreatedAt { get; set; }
