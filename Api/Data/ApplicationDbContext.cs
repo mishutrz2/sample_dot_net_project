@@ -22,6 +22,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<EventParticipantGroup> EventParticipantGroups => Set<EventParticipantGroup>();
     public DbSet<EventParticipant> EventParticipants => Set<EventParticipant>();
     public DbSet<EventResult> EventResults => Set<EventResult>();
+    public DbSet<StaticTeam> StaticTeams => Set<StaticTeam>();
+    public DbSet<StaticTeamMember> StaticTeamMembers => Set<StaticTeamMember>();
 
     private void ApplySoftDeleteLogic()
     {
@@ -68,7 +70,9 @@ public class ApplicationDbContext : DbContext
         builder.Entity<Permission>().Property(p => p.Id).HasColumnName("PermissionId");
         builder.Entity<EventParticipantGroup>().Property(epg => epg.Id).HasColumnName("EventParticipantGroupId");
         builder.Entity<EventResult>().Property(er => er.Id).HasColumnName("EventResultId");
-
+        builder.Entity<StaticTeam>().Property(st => st.Id).HasColumnName("TeamId");
+        builder.Entity<StaticTeamMember>().Property(stm => stm.Id).HasColumnName("StaticTeamMemberId");
+        
         builder.Entity<AppUser>().HasQueryFilter(u => !u.IsDeleted);
         builder.Entity<Activity>().HasQueryFilter(a => !a.IsDeleted);
         builder.Entity<Tenant>().HasQueryFilter(t => !t.IsDeleted);
@@ -80,6 +84,8 @@ public class ApplicationDbContext : DbContext
         builder.Entity<EventResult>().HasQueryFilter(er => !er.IsDeleted);
         builder.Entity<Membership>().HasQueryFilter(m => !m.AppUser.IsDeleted);
 
+        builder.Entity<Team>().Property(t => t.TeamType).HasConversion<string>();
+
         // Identity indexes
         builder.Entity<AppUser>().HasIndex(u => u.AwsSubject).IsUnique();
 
@@ -87,6 +93,7 @@ public class ApplicationDbContext : DbContext
         builder.Entity<ScheduledEvent>().HasIndex(e => e.TenantId);
         builder.Entity<Player>().HasIndex(p => new { p.TenantId, p.AppUserId }).IsUnique();
         builder.Entity<Membership>().HasIndex(m => new { m.AppUserId, m.TenantId });
+        builder.Entity<EventParticipantGroup>().HasIndex(epg => new { epg.ScheduledEventId, epg.TeamId });
 
         // ========================================
         // MANY-TO-MANY RELATIONSHIPS
@@ -251,6 +258,52 @@ public class ApplicationDbContext : DbContext
             .HasOne(er => er.WinningGroup)
             .WithMany()
             .HasForeignKey(er => er.WinningGroupId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        // ========================================
+        // TEAM HIERARCHY (TPH: Table Per Hierarchy)
+        // ========================================
+        // Single "teams" table with discriminator column to distinguish Static vs Ephemeral
+        // Purpose: Support both persistent teams (Static) and ad-hoc groupings (Ephemeral via EventParticipantGroup)
+        // StaticTeam is the only implementation currently, but structure is ready for future types
+         //builder.Entity<StaticTeam>()
+         //   .HasDiscriminator<TeamType>("TeamType")
+         //  .HasValue<StaticTeam>(TeamType.Static);
+
+        // STATIC TEAM MEMBER: Primary key and relationships
+        // Uses inherited Id as PK. Allows transfer history - player can rejoin same team
+        // Filtered unique index on (StaticTeamId, PlayerId) where LeftAt is null
+        // Ensures only ONE active membership per player per team, but allows multiple historical records
+        builder.Entity<StaticTeamMember>()
+            .HasIndex(stm => new { stm.StaticTeamId, stm.PlayerId })
+            .IsUnique()
+            .HasFilter("\"LeftAt\" IS NULL");  // PostgreSQL syntax for filtered index
+
+        // STATIC TEAM: Persistent roster for a season/tournament
+        // Purpose: Teams that remain constant throughout competition
+        // Example: "FC Barcelona" in "La Liga 2025" has fixed roster registered at season start
+        builder.Entity<StaticTeam>()
+            .HasMany(st => st.Members)
+            .WithOne(stm => stm.StaticTeam)
+            .HasForeignKey(stm => stm.StaticTeamId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // STATIC TEAM MEMBER: Individual player in a static team with transfer tracking
+        // Purpose: Record player's tenure, transfers, loans within a static team
+        // Example: "John" joined "FC Barcelona" on 2024-01-01, left on 2025-01-15 (Transfer)
+        builder.Entity<StaticTeamMember>()
+            .HasOne(stm => stm.Player)
+            .WithMany()
+            .HasForeignKey(stm => stm.PlayerId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // TEAM REFERENCE IN EVENT PARTICIPANT GROUP
+        // Optional: If set, group uses Static Team's current roster (at event time)
+        // If null, group uses direct EventParticipants (ephemeral/legacy)
+        builder.Entity<EventParticipantGroup>()
+            .HasOne(epg => epg.Team)
+            .WithMany()
+            .HasForeignKey(epg => epg.TeamId)
             .OnDelete(DeleteBehavior.SetNull);
     }
 }
