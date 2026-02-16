@@ -14,10 +14,10 @@ public class EventService(ApplicationDbContext context) : IEventService
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<IEnumerable<ScheduledEvent>> GetAllByLeagueIdAsync(Guid leagueId, CancellationToken cancellationToken)
+    public async Task<IEnumerable<ScheduledEvent>> GetAllByTenantIdAsync(Guid tenantId, CancellationToken cancellationToken)
     {
         return await context.ScheduledEvents
-            .Where(e => e.LeagueId == leagueId)
+            .Where(e => e.TenantId == tenantId)
             .AsNoTracking()
             .ToListAsync(cancellationToken);
     }
