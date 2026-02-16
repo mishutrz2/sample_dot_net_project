@@ -3,6 +3,7 @@ using System;
 using Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Api.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260216004447_AddedEventResult")]
+    partial class AddedEventResult
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -114,12 +117,7 @@ namespace Api.Migrations
                     b.Property<Guid>("PlayerId")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid?>("EventParticipantGroupId1")
-                        .HasColumnType("uuid");
-
                     b.HasKey("EventParticipantGroupId", "PlayerId");
-
-                    b.HasIndex("EventParticipantGroupId1");
 
                     b.HasIndex("PlayerId");
 
@@ -152,9 +150,6 @@ namespace Api.Migrations
                     b.Property<Guid>("ScheduledEventId")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid?>("TeamId")
-                        .HasColumnType("uuid");
-
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -163,9 +158,7 @@ namespace Api.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("TeamId");
-
-                    b.HasIndex("ScheduledEventId", "TeamId");
+                    b.HasIndex("ScheduledEventId");
 
                     b.ToTable("eventparticipantgroups", "sample_dot_net");
                 });
@@ -428,97 +421,6 @@ namespace Api.Migrations
                     b.ToTable("scheduledevents", "sample_dot_net");
                 });
 
-            modelBuilder.Entity("Api.Models.StaticTeamMember", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("StaticTeamMemberId");
-
-                    b.Property<DateTime>("JoinedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("LeaveReason")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("LeftAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("PlayerId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("StaticTeamId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PlayerId");
-
-                    b.HasIndex("StaticTeamId", "PlayerId")
-                        .IsUnique()
-                        .HasFilter("\"LeftAt\" IS NULL");
-
-                    b.ToTable("staticteammembers", "sample_dot_net");
-                });
-
-            modelBuilder.Entity("Api.Models.Team", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("TeamId");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("CreatedBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Description")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Discriminator")
-                        .IsRequired()
-                        .HasMaxLength(13)
-                        .HasColumnType("character varying(13)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("LogoUrl")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("TeamType")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("UpdatedBy")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TenantId");
-
-                    b.ToTable("team", "sample_dot_net");
-
-                    b.HasDiscriminator<string>("Discriminator").HasValue("Team");
-
-                    b.UseTphMappingStrategy();
-                });
-
             modelBuilder.Entity("Api.Models.Tenant", b =>
                 {
                     b.Property<Guid>("Id")
@@ -573,21 +475,6 @@ namespace Api.Migrations
                     b.ToTable("tenants", "sample_dot_net");
                 });
 
-            modelBuilder.Entity("Api.Models.StaticTeam", b =>
-                {
-                    b.HasBaseType("Api.Models.Team");
-
-                    b.Property<DateTime?>("SeasonEndDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime>("SeasonStartDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.ToTable("team", "sample_dot_net");
-
-                    b.HasDiscriminator().HasValue("StaticTeam");
-                });
-
             modelBuilder.Entity("Api.Models.EventParticipant", b =>
                 {
                     b.HasOne("Api.Models.EventParticipantGroup", "EventParticipantGroup")
@@ -595,11 +482,6 @@ namespace Api.Migrations
                         .HasForeignKey("EventParticipantGroupId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.HasOne("Api.Models.EventParticipantGroup", null)
-                        .WithMany("EventParticipants")
-                        .HasForeignKey("EventParticipantGroupId1")
-                        .HasConstraintName("FK_eventparticipants_eventparticipantgroups_EventParticipantG~1");
 
                     b.HasOne("Api.Models.Player", "Player")
                         .WithMany()
@@ -620,14 +502,7 @@ namespace Api.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Api.Models.Team", "Team")
-                        .WithMany()
-                        .HasForeignKey("TeamId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.Navigation("ScheduledEvent");
-
-                    b.Navigation("Team");
                 });
 
             modelBuilder.Entity("Api.Models.EventResult", b =>
@@ -724,36 +599,6 @@ namespace Api.Migrations
                     b.Navigation("Tenant");
                 });
 
-            modelBuilder.Entity("Api.Models.StaticTeamMember", b =>
-                {
-                    b.HasOne("Api.Models.Player", "Player")
-                        .WithMany()
-                        .HasForeignKey("PlayerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Api.Models.StaticTeam", "StaticTeam")
-                        .WithMany("Members")
-                        .HasForeignKey("StaticTeamId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Player");
-
-                    b.Navigation("StaticTeam");
-                });
-
-            modelBuilder.Entity("Api.Models.Team", b =>
-                {
-                    b.HasOne("Api.Models.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Tenant");
-                });
-
             modelBuilder.Entity("Api.Models.Tenant", b =>
                 {
                     b.HasOne("Api.Models.Activity", "Activity")
@@ -783,11 +628,6 @@ namespace Api.Migrations
                     b.Navigation("Memberships");
                 });
 
-            modelBuilder.Entity("Api.Models.EventParticipantGroup", b =>
-                {
-                    b.Navigation("EventParticipants");
-                });
-
             modelBuilder.Entity("Api.Models.Permission", b =>
                 {
                     b.Navigation("RolePermissions");
@@ -807,11 +647,6 @@ namespace Api.Migrations
                     b.Navigation("Players");
 
                     b.Navigation("ScheduledEvents");
-                });
-
-            modelBuilder.Entity("Api.Models.StaticTeam", b =>
-                {
-                    b.Navigation("Members");
                 });
 #pragma warning restore 612, 618
         }
