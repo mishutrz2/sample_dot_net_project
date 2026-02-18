@@ -212,7 +212,7 @@ public class CognitoAuthenticationService : IAppAuthenticationService
             return new AuthenticationResult
             {
                 Success = false,
-                Message = $"Sign in failed: {ex.Message}"
+                Message = "Sign in failed. Please try again later."
             };
         }
     }
