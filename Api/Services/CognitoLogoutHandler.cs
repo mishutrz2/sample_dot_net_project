@@ -21,17 +21,21 @@ public class CognitoLogoutHandler : IAuthenticationSignOutHandler
 
     public Task<AuthenticateResult> AuthenticateAsync()
     {
-        throw new NotImplementedException();
+        // This handler is only responsible for sign-out and does not perform authentication.
+        // Indicate that no authentication result is provided by this handler.
+        return Task.FromResult(AuthenticateResult.NoResult());
     }
 
     public Task ChallengeAsync(AuthenticationProperties? properties)
     {
-        throw new NotImplementedException();
+        // No challenge behavior is required for this logout-specific handler.
+        return Task.CompletedTask;
     }
 
     public Task ForbidAsync(AuthenticationProperties? properties)
     {
-        throw new NotImplementedException();
+        // No forbid behavior is required for this logout-specific handler.
+        return Task.CompletedTask;
     }
 
     public Task InitializeAsync(AuthenticationScheme scheme, HttpContext context)
