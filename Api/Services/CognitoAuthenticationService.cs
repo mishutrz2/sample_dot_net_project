@@ -161,6 +161,15 @@ public class CognitoAuthenticationService : IAppAuthenticationService
             // Get the Cognito user sub from the ID token
             var userSubject = ExtractClaimFromToken(response.AuthenticationResult.IdToken, "sub");
 
+            // If we cannot extract a valid subject, treat this as an authentication failure
+            if (string.IsNullOrEmpty(userSubject))
+            {
+                return new AuthenticationResult
+                {
+                    Success = false,
+                    Message = "Authentication failed"
+                };
+            }
             // Update AppUser's last login
             var appUser = await _context.AppUsers.FirstOrDefaultAsync(u => u.AwsSubject == userSubject, cancellationToken);
             if (appUser != null)
