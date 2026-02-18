@@ -61,7 +61,16 @@ public class ApplicationDbContext : DbContext
                         // Only convert if not already UTC
                         if (dateTime.Kind != DateTimeKind.Utc)
                         {
-                            property.CurrentValue = DateTime.SpecifyKind(dateTime, DateTimeKind.Utc);
+                            if (dateTime.Kind == DateTimeKind.Local)
+                            {
+                                // Convert local time to UTC to preserve the instant
+                                property.CurrentValue = dateTime.ToUniversalTime();
+                            }
+                            else if (dateTime.Kind == DateTimeKind.Unspecified)
+                            {
+                                // Assume the instant is already UTC and only fix the Kind
+                                property.CurrentValue = DateTime.SpecifyKind(dateTime, DateTimeKind.Utc);
+                            }
                         }
                     }
                 }
