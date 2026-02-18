@@ -227,10 +227,16 @@ public class AuthController : ControllerBase
     /// </summary>
     [HttpGet("logout")]
     [Authorize]
-    public async Task<IActionResult> Logout(CancellationToken cancellationToken)
+    public IActionResult Logout(CancellationToken cancellationToken)
     {
-        await HttpContext.SignOutAsync(OpenIdConnectDefaults.AuthenticationScheme);
-        return Ok(new { message = "Logged out successfully" });
+        // Return a SignOutResult so the OpenID Connect middleware can redirect
+        // the browser to Cognito's logout endpoint and then back to the application.
+        var authProperties = new AuthenticationProperties
+        {
+            RedirectUri = "/"
+        };
+
+        return SignOut(authProperties, OpenIdConnectDefaults.AuthenticationScheme);
     }
 }
 
