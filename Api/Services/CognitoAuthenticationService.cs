@@ -116,7 +116,7 @@ public class CognitoAuthenticationService : IAppAuthenticationService
             return new RegistrationResult
             {
                 Success = false,
-                Message = $"Registration failed: {ex.Message}"
+                Message = "Registration failed. Please try again later."
             };
         }
     }
