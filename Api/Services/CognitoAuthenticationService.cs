@@ -61,19 +61,29 @@ public class CognitoAuthenticationService : IAppAuthenticationService
     {
         try
         {
+            var userAttributes = new List<AttributeType>
+            {
+                new AttributeType { Name = "email", Value = request.Email },
+                new AttributeType { Name = "name", Value = request.DisplayName },
+                new AttributeType { Name = "gender", Value = request.Gender ?? "other" },
+                new AttributeType { Name = "nickname", Value = request.NickName ?? request.DisplayName }
+            };
+
+            if (request.DateOfBirth.HasValue)
+            {
+                userAttributes.Add(new AttributeType
+                {
+                    Name = "birthdate",
+                    Value = request.DateOfBirth.Value.ToString("yyyy-MM-dd")
+                });
+            }
+
             var signUpRequest = new SignUpRequest
             {
                 ClientId = _clientId,
                 Username = request.Email,
                 Password = request.Password,
-                UserAttributes = new List<AttributeType>
-                {
-                    new AttributeType { Name = "email", Value = request.Email },
-                    new AttributeType { Name = "name", Value = request.DisplayName },
-                    new AttributeType { Name = "birthdate", Value = request.DateOfBirth?.ToString("yyyy-MM-dd") ?? "1990-01-01" },
-                    new AttributeType { Name = "gender", Value = request.Gender ?? "other" },
-                    new AttributeType { Name = "nickname", Value = request.NickName ?? request.DisplayName }
-                }
+                UserAttributes = userAttributes
             };
 
             // Add SecretHash if client has a secret configured
