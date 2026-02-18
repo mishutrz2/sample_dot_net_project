@@ -17,13 +17,6 @@ namespace Api.Migrations
                 table: "eventparticipantgroups");
 
             migrationBuilder.AddColumn<Guid>(
-                name: "EventParticipantGroupId1",
-                schema: "sample_dot_net",
-                table: "eventparticipants",
-                type: "uuid",
-                nullable: true);
-
-            migrationBuilder.AddColumn<Guid>(
                 name: "TeamId",
                 schema: "sample_dot_net",
                 table: "eventparticipantgroups",
@@ -95,12 +88,6 @@ namespace Api.Migrations
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_eventparticipants_EventParticipantGroupId1",
-                schema: "sample_dot_net",
-                table: "eventparticipants",
-                column: "EventParticipantGroupId1");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_eventparticipantgroups_ScheduledEventId_TeamId",
                 schema: "sample_dot_net",
                 table: "eventparticipantgroups",
@@ -141,15 +128,6 @@ namespace Api.Migrations
                 principalTable: "team",
                 principalColumn: "TeamId",
                 onDelete: ReferentialAction.SetNull);
-
-            migrationBuilder.AddForeignKey(
-                name: "FK_eventparticipants_eventparticipantgroups_EventParticipantG~1",
-                schema: "sample_dot_net",
-                table: "eventparticipants",
-                column: "EventParticipantGroupId1",
-                principalSchema: "sample_dot_net",
-                principalTable: "eventparticipantgroups",
-                principalColumn: "EventParticipantGroupId");
         }
 
         /// <inheritdoc />
@@ -160,11 +138,6 @@ namespace Api.Migrations
                 schema: "sample_dot_net",
                 table: "eventparticipantgroups");
 
-            migrationBuilder.DropForeignKey(
-                name: "FK_eventparticipants_eventparticipantgroups_EventParticipantG~1",
-                schema: "sample_dot_net",
-                table: "eventparticipants");
-
             migrationBuilder.DropTable(
                 name: "staticteammembers",
                 schema: "sample_dot_net");
@@ -172,11 +145,6 @@ namespace Api.Migrations
             migrationBuilder.DropTable(
                 name: "team",
                 schema: "sample_dot_net");
-
-            migrationBuilder.DropIndex(
-                name: "IX_eventparticipants_EventParticipantGroupId1",
-                schema: "sample_dot_net",
-                table: "eventparticipants");
 
             migrationBuilder.DropIndex(
                 name: "IX_eventparticipantgroups_ScheduledEventId_TeamId",
@@ -187,11 +155,6 @@ namespace Api.Migrations
                 name: "IX_eventparticipantgroups_TeamId",
                 schema: "sample_dot_net",
                 table: "eventparticipantgroups");
-
-            migrationBuilder.DropColumn(
-                name: "EventParticipantGroupId1",
-                schema: "sample_dot_net",
-                table: "eventparticipants");
 
             migrationBuilder.DropColumn(
                 name: "TeamId",
