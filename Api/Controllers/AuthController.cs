@@ -38,6 +38,9 @@ public class AuthController : ControllerBase
             return BadRequest(ModelState);
 
         var result = await _authService.RegisterAsync(request, cancellationToken);
+
+        if (!result.Success)
+            return BadRequest(result);
         return Ok(result);
     }
 
