@@ -6,6 +6,7 @@ using Api.Data;
 using Api.Models;
 using Api.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -230,7 +231,7 @@ public class CognitoAuthenticationService : IAppAuthenticationService
     /// <summary>
     /// Refresh access token using refresh token
     /// </summary>
-    public async Task<AuthenticationResult> RefreshTokenAsync(string refreshToken, CancellationToken cancellationToken = default)
+    public async Task<AuthenticationResult> RefreshTokenAsync(string refreshToken, string username, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -240,16 +241,15 @@ public class CognitoAuthenticationService : IAppAuthenticationService
                 AuthFlow = AuthFlowType.REFRESH_TOKEN_AUTH,
                 AuthParameters = new Dictionary<string, string>
                 {
-                    { "REFRESH_TOKEN", refreshToken }
+                    { "REFRESH_TOKEN", refreshToken },
+                    { "USERNAME", username }
                 }
             };
 
             // Add SecretHash if client has a secret configured
             if (!string.IsNullOrEmpty(_clientSecret))
             {
-                // For refresh token auth, use a dummy username since we don't have it
-                // Cognito still requires the hash for security
-                authRequest.AuthParameters["SECRET_HASH"] = CalculateSecretHash("");
+                authRequest.AuthParameters["SECRET_HASH"] = CalculateSecretHash(username);
             }
 
             var response = await _cognitoClient.InitiateAuthAsync(authRequest, cancellationToken);
@@ -443,38 +443,21 @@ public class CognitoAuthenticationService : IAppAuthenticationService
     }
 
     /// <summary>
-    /// Extract claim value from JWT token (helper method)
+    /// Extract claim value from JWT token using proper JWT parsing.
+    /// Uses JwtSecurityTokenHandler to correctly handle base64url encoding.
     /// </summary>
     private string? ExtractClaimFromToken(string token, string claimType)
     {
         try
         {
-            var parts = token.Split('.');
-            if (parts.Length != 3) return null;
-
-            var decodedBytes = Convert.FromBase64String(AddPadding(parts[1]));
-            var decodedToken = Encoding.UTF8.GetString(decodedBytes);
-            
-            // Simple JSON parsing for claim extraction
-            var claimKey = $"\"{claimType}\":\"";
-            var startIndex = decodedToken.IndexOf(claimKey);
-            if (startIndex == -1) return null;
-
-            var valueStart = startIndex + claimKey.Length;
-            var valueEnd = decodedToken.IndexOf("\"", valueStart);
-
-            return decodedToken.Substring(valueStart, valueEnd - valueStart);
+            var handler = new JwtSecurityTokenHandler();
+            var jwtToken = handler.ReadJwtToken(token);
+            return jwtToken.Claims.FirstOrDefault(c => c.Type == claimType)?.Value;
         }
         catch
         {
             return null;
         }
-    }
-
-    private static string AddPadding(string base64String)
-    {
-        var padding = 4 - base64String.Length % 4;
-        return padding == 4 ? base64String : base64String + new string('=', padding);
     }
 
     /// <summary>

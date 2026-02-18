@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Identity;
-
 namespace Api.Services.Interfaces;
 
 /// <summary>
@@ -21,7 +19,10 @@ public interface IAppAuthenticationService
     /// <summary>
     /// Refresh access token using refresh token
     /// </summary>
-    Task<AuthenticationResult> RefreshTokenAsync(string refreshToken, CancellationToken cancellationToken = default);
+    /// <param name="refreshToken">The refresh token issued during sign-in</param>
+    /// <param name="username">The username (email) associated with the token, required for Cognito SECRET_HASH</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    Task<AuthenticationResult> RefreshTokenAsync(string refreshToken, string username, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Confirm user email/phone

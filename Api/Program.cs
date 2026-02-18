@@ -32,6 +32,16 @@ var authority = cognitoSettings["Authority"];
 var audience = cognitoSettings["ClientId"];
 var region = builder.Configuration["AWS:Region"] ?? "us-east-1";
 
+// Validate required Cognito settings before configuring auth middleware
+if (string.IsNullOrWhiteSpace(authority))
+    throw new InvalidOperationException(
+        "Missing required configuration: Cognito:Authority. "
+        + "Set it to 'https://cognito-idp.{region}.amazonaws.com/{userPoolId}'.");
+
+if (string.IsNullOrWhiteSpace(audience))
+    throw new InvalidOperationException(
+        "Missing required configuration: Cognito:ClientId.");
+
 // JWT Bearer Authentication for APIs
 builder.Services.AddAuthentication(options =>
 {

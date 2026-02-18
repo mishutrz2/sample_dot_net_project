@@ -112,7 +112,10 @@ public class AuthController : ControllerBase
         if (string.IsNullOrWhiteSpace(request.RefreshToken))
             return BadRequest("Refresh token is required");
 
-        var result = await _authService.RefreshTokenAsync(request.RefreshToken, cancellationToken);
+        if (string.IsNullOrWhiteSpace(request.Username))
+            return BadRequest("Username is required for token refresh");
+
+        var result = await _authService.RefreshTokenAsync(request.RefreshToken, request.Username, cancellationToken);
         
         if (!result.Success)
             return Unauthorized(result);
@@ -247,6 +250,8 @@ public class AuthController : ControllerBase
 public class RefreshTokenRequest
 {
     public string RefreshToken { get; set; } = default!;
+    /// <summary>The username (email) associated with the token, required for Cognito SECRET_HASH computation</summary>
+    public string Username { get; set; } = default!;
 }
 
 /// <summary>Request for password change (requires authentication)</summary>
