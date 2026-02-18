@@ -37,14 +37,57 @@ public class ApplicationDbContext : DbContext
         }
     }
 
+    private void EnsureUtcDateTime()
+    {
+        // Handle all entities and all DateTime properties
+        foreach (var entry in ChangeTracker.Entries())
+        {
+            if (entry.State == EntityState.Added || entry.State == EntityState.Modified)
+            {
+                // Get all properties of the entity
+                var properties = entry.Properties;
+                
+                foreach (var property in properties)
+                {
+                    // Check if property type is DateTime or DateTime? (nullable)
+                    var propertyType = property.Metadata.ClrType;
+                    var isDateTime = propertyType == typeof(DateTime);
+                    var isNullableDateTime = propertyType == typeof(DateTime?);
+                    
+                    if ((isDateTime || isNullableDateTime) && property.CurrentValue != null)
+                    {
+                        var dateTime = (DateTime)property.CurrentValue;
+                        
+                        // Only convert if not already UTC
+                        if (dateTime.Kind != DateTimeKind.Utc)
+                        {
+                            if (dateTime.Kind == DateTimeKind.Local)
+                            {
+                                // Convert local time to UTC to preserve the instant
+                                property.CurrentValue = dateTime.ToUniversalTime();
+                            }
+                            else if (dateTime.Kind == DateTimeKind.Unspecified)
+                            {
+                                // Assume the instant is already UTC and only fix the Kind
+                                property.CurrentValue = DateTime.SpecifyKind(dateTime, DateTimeKind.Utc);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     public override int SaveChanges()
     {
+        EnsureUtcDateTime();
         ApplySoftDeleteLogic();
         return base.SaveChanges();
     }
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
+        EnsureUtcDateTime();
         ApplySoftDeleteLogic();
         return await base.SaveChangesAsync(cancellationToken);
     }
@@ -83,6 +126,12 @@ public class ApplicationDbContext : DbContext
         builder.Entity<EventParticipantGroup>().HasQueryFilter(epg => !epg.IsDeleted);
         builder.Entity<EventResult>().HasQueryFilter(er => !er.IsDeleted);
         builder.Entity<Membership>().HasQueryFilter(m => !m.AppUser.IsDeleted);
+        
+        // Add matching filters on child entities to prevent orphaned references
+        builder.Entity<EventParticipant>().HasQueryFilter(ep => !ep.EventParticipantGroup.IsDeleted);
+        builder.Entity<RolePermission>().HasQueryFilter(rp => !rp.Permission.IsDeleted && !rp.Role.IsDeleted);
+        builder.Entity<Team>().HasQueryFilter(t => !t.Tenant.IsDeleted);
+        builder.Entity<StaticTeamMember>().HasQueryFilter(stm => !stm.Player.IsDeleted);
 
         builder.Entity<Team>().Property(t => t.TeamType).HasConversion<string>();
 
@@ -229,7 +278,7 @@ public class ApplicationDbContext : DbContext
         // Composite key: (EventParticipantGroupId, PlayerId) prevents duplicates
         builder.Entity<EventParticipant>()
             .HasOne(ep => ep.EventParticipantGroup)
-            .WithMany()
+            .WithMany(epg => epg.EventParticipants)
             .HasForeignKey(ep => ep.EventParticipantGroupId)
             .OnDelete(DeleteBehavior.Cascade);
 

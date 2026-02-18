@@ -114,12 +114,7 @@ namespace Api.Migrations
                     b.Property<Guid>("PlayerId")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid?>("EventParticipantGroupId1")
-                        .HasColumnType("uuid");
-
                     b.HasKey("EventParticipantGroupId", "PlayerId");
-
-                    b.HasIndex("EventParticipantGroupId1");
 
                     b.HasIndex("PlayerId");
 
@@ -591,15 +586,10 @@ namespace Api.Migrations
             modelBuilder.Entity("Api.Models.EventParticipant", b =>
                 {
                     b.HasOne("Api.Models.EventParticipantGroup", "EventParticipantGroup")
-                        .WithMany()
+                        .WithMany("EventParticipants")
                         .HasForeignKey("EventParticipantGroupId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.HasOne("Api.Models.EventParticipantGroup", null)
-                        .WithMany("EventParticipants")
-                        .HasForeignKey("EventParticipantGroupId1")
-                        .HasConstraintName("FK_eventparticipants_eventparticipantgroups_EventParticipantG~1");
 
                     b.HasOne("Api.Models.Player", "Player")
                         .WithMany()
