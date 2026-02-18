@@ -1,0 +1,195 @@
+@page "/confirm-email"
+@page "/confirm-email/{Email}"
+@using Web.Models
+@using Web.Services
+@implements IDisposable
+@inject IAuthService AuthService
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>Confirm Email</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="mt-8">
+    <MudPaper Elevation="4" Class="pa-8">
+        <MudStack Spacing="4" AlignItems="AlignItems.Center">
+            <MudIcon Icon="@Icons.Material.Filled.MarkEmailRead" Size="Size.Large" Color="Color.Primary" />
+            <MudText Typo="Typo.h4" Align="Align.Center">Verify Your Email</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Align="Align.Center">
+                We sent a confirmation code to <strong>@_email</strong>.
+                Enter it below to activate your account.
+            </MudText>
+        </MudStack>
+
+        <MudForm @ref="_form" Class="mt-6">
+            <MudTextField @bind-Value="_email"
+                          Label="Email"
+                          Variant="Variant.Outlined"
+                          InputType="InputType.Email"
+                          Required="true"
+                          RequiredError="Email is required"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Email"
+                          ReadOnly="@(!string.IsNullOrEmpty(Email))"
+                          Class="mb-4" />
+
+            <MudTextField @bind-Value="_code"
+                          Label="Confirmation Code"
+                          Variant="Variant.Outlined"
+                          Required="true"
+                          RequiredError="Code is required"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Pin"
+                          Class="mb-6"
+                          AutoFocus="true" />
+
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       FullWidth="true"
+                       Size="Size.Large"
+                       OnClick="HandleConfirm"
+                       Disabled="_loading">
+                @if (_loading)
+                {
+                    <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                    <MudText Class="ms-2">Verifying...</MudText>
+                }
+                else
+                {
+                    <MudText>Verify Account</MudText>
+                }
+            </MudButton>
+        </MudForm>
+
+        <MudDivider Class="my-6" />
+
+        <MudStack Spacing="2" AlignItems="AlignItems.Center">
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                Didn't receive the code?
+            </MudText>
+            <MudButton Variant="Variant.Text"
+                       Color="Color.Primary"
+                       OnClick="HandleResend"
+                       Disabled="@(_resending || _cooldownSeconds > 0)">
+                @if (_resending)
+                {
+                    <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                    <MudText Class="ms-2">Sending...</MudText>
+                }
+                else if (_cooldownSeconds > 0)
+                {
+                    <MudText>Resend Code (@_cooldownSeconds s)</MudText>
+                }
+                else
+                {
+                    <MudText>Resend Code</MudText>
+                }
+            </MudButton>
+        </MudStack>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    [Parameter]
+    public string? Email { get; set; }
+
+    private MudForm _form = null!;
+    private string _email = string.Empty;
+    private string _code = string.Empty;
+    private bool _loading;
+    private bool _resending;
+    private int _cooldownSeconds;
+    private System.Threading.Timer? _cooldownTimer;
+
+    protected override void OnInitialized()
+    {
+        _email = Uri.UnescapeDataString(Email ?? string.Empty);
+    }
+
+    private async Task HandleConfirm()
+    {
+        await _form.Validate();
+        if (!_form.IsValid)
+            return;
+
+        _loading = true;
+
+        try
+        {
+            var success = await AuthService.ConfirmEmailAsync(_email, _code);
+
+            if (success)
+            {
+                Snackbar.Add("Email verified! You can now sign in.", Severity.Success);
+                Navigation.NavigateTo("/login");
+            }
+            else
+            {
+                Snackbar.Add("Verification failed. The code may be expired or invalid.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"An error occurred: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task HandleResend()
+    {
+        if (string.IsNullOrWhiteSpace(_email))
+        {
+            Snackbar.Add("Please enter your email first.", Severity.Warning);
+            return;
+        }
+
+        _resending = true;
+
+        try
+        {
+            var success = await AuthService.ResendConfirmationCodeAsync(_email);
+
+            if (success)
+            {
+                Snackbar.Add("A new code has been sent to your email.", Severity.Success);
+                StartCooldown(60);
+            }
+            else
+                Snackbar.Add("Failed to resend code. Please try again.", Severity.Error);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"An error occurred: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _resending = false;
+        }
+    }
+
+    private void StartCooldown(int seconds)
+    {
+        _cooldownSeconds = seconds;
+        _cooldownTimer?.Dispose();
+        _cooldownTimer = new System.Threading.Timer(_ =>
+        {
+            InvokeAsync(() =>
+            {
+                _cooldownSeconds--;
+                if (_cooldownSeconds <= 0)
+                {
+                    _cooldownTimer?.Dispose();
+                    _cooldownTimer = null;
+                }
+                StateHasChanged();
+            });
+        }, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+    }
+
+    public void Dispose()
+    {
+        _cooldownTimer?.Dispose();
+    }
+}

@@ -1,0 +1,108 @@
+@page "/profile"
+@using Web.Models
+@using Web.Services
+@inject IAuthService AuthService
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+@inject AuthenticationStateProvider AuthStateProvider
+@attribute [Authorize]
+
+<PageTitle>Profile</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="mt-8">
+    @if (_loading)
+    {
+        <MudStack AlignItems="AlignItems.Center" Class="mt-16">
+            <MudProgressCircular Color="Color.Primary" Size="Size.Large" Indeterminate="true" />
+            <MudText Typo="Typo.body1" Color="Color.Secondary" Class="mt-4">Loading profile...</MudText>
+        </MudStack>
+    }
+    else if (_profile is not null)
+    {
+        <MudPaper Elevation="4" Class="pa-8">
+            <MudStack Spacing="4" AlignItems="AlignItems.Center">
+                <MudAvatar Color="Color.Primary" Size="Size.Large" Class="mb-2">
+                    @(_profile.DisplayName?.FirstOrDefault().ToString().ToUpper() ?? "?")
+                </MudAvatar>
+                <MudText Typo="Typo.h4" Align="Align.Center">@_profile.DisplayName</MudText>
+                <MudChip T="string" Color="Color.Success" Variant="Variant.Outlined" Size="Size.Small">
+                    Verified
+                </MudChip>
+            </MudStack>
+
+            <MudDivider Class="my-6" />
+
+            <MudList T="string" Dense="true">
+                <MudListItem Icon="@Icons.Material.Filled.Email" IconColor="Color.Primary">
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Email</MudText>
+                        <MudText Typo="Typo.body1">@_profile.Email</MudText>
+                    </MudStack>
+                </MudListItem>
+                <MudListItem Icon="@Icons.Material.Filled.Fingerprint" IconColor="Color.Primary">
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">User ID</MudText>
+                        <MudText Typo="Typo.body1" Style="font-family: monospace; font-size: 0.8rem;">
+                            @_profile.UserId
+                        </MudText>
+                    </MudStack>
+                </MudListItem>
+            </MudList>
+
+            <MudDivider Class="my-6" />
+
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Error"
+                       FullWidth="true"
+                       Size="Size.Large"
+                       StartIcon="@Icons.Material.Filled.Logout"
+                       OnClick="HandleLogout">
+                Sign Out
+            </MudButton>
+        </MudPaper>
+    }
+    else
+    {
+        <MudPaper Elevation="4" Class="pa-8">
+            <MudStack Spacing="4" AlignItems="AlignItems.Center">
+                <MudIcon Icon="@Icons.Material.Filled.ErrorOutline" Size="Size.Large" Color="Color.Warning" />
+                <MudText Typo="Typo.h5" Align="Align.Center">Could not load profile</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Align="Align.Center">
+                    Your session may have expired. Please sign in again.
+                </MudText>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/login" Class="mt-4">
+                    Sign In
+                </MudButton>
+            </MudStack>
+        </MudPaper>
+    }
+</MudContainer>
+
+@code {
+    private UserProfile? _profile;
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _profile = await AuthService.GetProfileAsync();
+        }
+        catch
+        {
+            _profile = null;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task HandleLogout()
+    {
+        await AuthService.LogoutAsync();
+        ((JwtAuthenticationStateProvider)AuthStateProvider).NotifyAuthStateChanged();
+        Snackbar.Add("Signed out successfully", Severity.Info);
+        Navigation.NavigateTo("/login");
+    }
+}

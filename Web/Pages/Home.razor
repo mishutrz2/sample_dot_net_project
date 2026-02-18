@@ -1,0 +1,36 @@
+﻿@page "/"
+
+<PageTitle>Home</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-12">
+    <MudStack Spacing="6" AlignItems="AlignItems.Center">
+        <MudIcon Icon="@Icons.Material.Filled.Rocket" Size="Size.Large" Color="Color.Primary" Style="font-size: 4rem;" />
+        <MudText Typo="Typo.h3" Align="Align.Center" GutterBottom="true">
+            Welcome to Sample App
+        </MudText>
+        <MudText Typo="Typo.h6" Align="Align.Center" Color="Color.Secondary">
+            A Blazor WebAssembly application with AWS Cognito authentication
+        </MudText>
+
+        <MudStack Row="true" Spacing="4" Class="mt-4">
+            <AuthorizeView>
+                <Authorized>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                               StartIcon="@Icons.Material.Filled.Person" Href="/profile">
+                        View Profile
+                    </MudButton>
+                </Authorized>
+                <NotAuthorized>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                               StartIcon="@Icons.Material.Filled.Login" Href="/login">
+                        Sign In
+                    </MudButton>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Large"
+                               StartIcon="@Icons.Material.Filled.PersonAdd" Href="/register">
+                        Register
+                    </MudButton>
+                </NotAuthorized>
+            </AuthorizeView>
+        </MudStack>
+    </MudStack>
+</MudContainer>

@@ -137,6 +137,7 @@ public class ApplicationDbContext : DbContext
 
         // Identity indexes
         builder.Entity<AppUser>().HasIndex(u => u.AwsSubject).IsUnique();
+        builder.Entity<AppUser>().HasIndex(u => u.DisplayName).IsUnique();
 
         // Useful indexes
         builder.Entity<ScheduledEvent>().HasIndex(e => e.TenantId);

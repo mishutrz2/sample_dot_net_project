@@ -62,22 +62,27 @@ public class CognitoAuthenticationService : IAppAuthenticationService
     {
         try
         {
+            // Check for duplicate display name before calling Cognito
+            var displayNameExists = await _context.AppUsers
+                .AnyAsync(u => u.DisplayName == request.DisplayName, cancellationToken);
+
+            if (displayNameExists)
+            {
+                return new RegistrationResult
+                {
+                    Success = false,
+                    Message = "Display name is already taken. Please choose a different one."
+                };
+            }
+
             var userAttributes = new List<AttributeType>
             {
                 new AttributeType { Name = "email", Value = request.Email },
                 new AttributeType { Name = "name", Value = request.DisplayName },
-                new AttributeType { Name = "gender", Value = request.Gender ?? "other" },
-                new AttributeType { Name = "nickname", Value = request.NickName ?? request.DisplayName }
+                new AttributeType { Name = "gender", Value = request.Gender },
+                new AttributeType { Name = "nickname", Value = request.NickName ?? request.DisplayName },
+                new AttributeType { Name = "birthdate", Value = request.DateOfBirth.ToString("yyyy-MM-dd") }
             };
-
-            if (request.DateOfBirth.HasValue)
-            {
-                userAttributes.Add(new AttributeType
-                {
-                    Name = "birthdate",
-                    Value = request.DateOfBirth.Value.ToString("yyyy-MM-dd")
-                });
-            }
 
             var signUpRequest = new SignUpRequest
             {
@@ -101,17 +106,41 @@ public class CognitoAuthenticationService : IAppAuthenticationService
                 AwsSubject = response.UserSub, // Cognito user ID
                 Email = request.Email,
                 DisplayName = request.DisplayName,
+                Gender = request.Gender,
                 IsActive = false, // Not active until email confirmed
-                DateOfBirth = request.DateOfBirth.HasValue 
-                    ? DateTime.SpecifyKind(request.DateOfBirth.Value, DateTimeKind.Utc)
-                    : null,
+                DateOfBirth = DateTime.SpecifyKind(request.DateOfBirth, DateTimeKind.Utc),
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
                 IsDeleted = false
             };
 
             _context.AppUsers.Add(appUser);
-            await _context.SaveChangesAsync(cancellationToken);
+
+            try
+            {
+                await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("DisplayName", StringComparison.OrdinalIgnoreCase) == true
+                                             || ex.InnerException?.Message.Contains("duplicate", StringComparison.OrdinalIgnoreCase) == true)
+            {
+                _logger.LogWarning(ex, "Duplicate display name detected during save for user {Email}", request.Email);
+                await RollbackCognitoUserAsync(request.Email, cancellationToken);
+                return new RegistrationResult
+                {
+                    Success = false,
+                    Message = "Display name is already taken. Please choose a different one."
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Database error while saving user {Email}. Rolling back Cognito registration.", request.Email);
+                await RollbackCognitoUserAsync(request.Email, cancellationToken);
+                return new RegistrationResult
+                {
+                    Success = false,
+                    Message = "Registration failed due to a database error. Please try again."
+                };
+            }
 
             return new RegistrationResult
             {
@@ -477,6 +506,31 @@ public class CognitoAuthenticationService : IAppAuthenticationService
         {
             var hashBytes = hmac.ComputeHash(messageBytes);
             return Convert.ToBase64String(hashBytes);
+        }
+    }
+
+    /// <summary>
+    /// Delete a user from Cognito to roll back a failed registration.
+    /// Called when the local DB save fails after a successful Cognito sign-up
+    /// so the two systems stay in sync.
+    /// </summary>
+    private async Task RollbackCognitoUserAsync(string username, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _cognitoClient.AdminDeleteUserAsync(new AdminDeleteUserRequest
+            {
+                UserPoolId = _userPoolId,
+                Username = username
+            }, cancellationToken);
+
+            _logger.LogInformation("Rolled back Cognito user {Username} after DB save failure.", username);
+        }
+        catch (Exception ex)
+        {
+            // Log but don't throw — the caller already has an error to return.
+            // An orphaned Cognito user is bad but crashing the API is worse.
+            _logger.LogError(ex, "Failed to roll back Cognito user {Username}. Manual cleanup required.", username);
         }
     }
 }
