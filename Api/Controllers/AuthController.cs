@@ -198,8 +198,7 @@ public class AuthController : ControllerBase
     {
         // Debug: Log all claims
         var claims = User.Claims.Select(c => new { c.Type, c.Value }).ToList();
-        _logger.LogInformation("Token claims: {@Claims}", claims);
-
+        
         // Get the 'sub' (subject/user ID) from the token
         var sub = User.FindFirst("sub")?.Value;
         
